@@ -1,0 +1,84 @@
+product_id,model_name,category,condition,is_used,hashrate_ths,efficiency_j_th,price_usd,stock,doa_terms,notes
+P001,L7 8800/9050,miner,new,False,,,1988.0,,7 day DOA,remarks: 7 day DOA | location: US
+P002,S19 86/90T (88T avg),miner,new,False,88.0,,132.0,,,remarks: 86 and 90T mix. average TH is 88T | location: US
+P003,Used S19jpro+120T mix,miner,used,True,120.0,,369.6,,,remarks: S19J PRO / S19 PRO mix | location: US
+P004,S19K PRO 115,miner,new,False,,,,,,remarks: On request | location: US
+P005,S19XP 141T mix,miner,new,False,141.0,,846.0,,,remarks: Currently hashing (not sold with hosting) | location: US
+P006,S21 200T,miner,new,False,200.0,,13.2,,,location: US
+P007,T21 190T,miner,new,False,190.0,,1729.0,,,location: US
+P008,S21 Pro 220T,miner,new,False,220.0,,3058.0,,,remarks: Can be mixed 220-234T | location: US
+P009,M30S++ 110T,miner,new,False,110.0,,374.0,,5 day DOA,remarks: 5 day DOA | location: US
+P010,M50 114-118T,miner,new,False,118.0,,579.0,,,remarks: Tested before shipping out | location: US
+P011,L9 17G,miner,new,False,,,7260.0,,,location: US
+P012,S21 200T,miner,new,False,200.0,,,,,location: US
+P013,S21+ 235T,miner,new,False,235.0,,3666.0,,,location: US
+P014,A15Pro 221T,miner,new,False,221.0,,3879.0,,,location: US
+P015,S21 PRO 245T,miner,new,False,245.0,,4150.0,,,location: US
+P016,S21 XP 270T,miner,new,False,270.0,,5643.0,,,location: US
+P017,M60S+ 17W 204T,miner,new,False,204.0,,2896.8,,,location: US
+P018,Z15 Pro 820K,miner,new,False,,,,,,location: Asia
+P019,KS5 Pro 21T,miner,new,False,21.0,,1265.0,,,location: Asia
+P020,KS0 Ultra,miner,new,False,,,99.0,,,location: Asia
+P021,KS0,miner,new,False,,,139.99,,,location: Asia
+P022,Bitmain D9,miner,new,False,,,,,,location: Asia
+P023,Bitmain D9,miner,new,False,,,319.99,,,location: Asia
+P024,"Jasper T3 841, 17T",miner,new,False,17.0,,189.0,,5 day DOA,remarks: 5 day DOA | location: Asia
+P025,Jasper M20s 68T,miner,new,False,68.0,,340.0,,5 day DOA,remarks: 5 day DOA | location: Asia
+P026,Bitmain DR7,miner,new,False,,,,,,location: Asia
+P027,IceRiver KAS KS3 (use on website),miner,new,False,,,,,,location: Asia
+P028,M56s 230T,miner,new,False,,,0.0,,,location: Asia
+P029,S19XP 140T,miner,new,False,140.0,,,,,location: Asia
+P030,S19J PRO+ 120T,miner,new,False,120.0,,1400.0,,,location: Asia
+P031,S19 PRO 110T,miner,new,False,110.0,,806.0,,,location: Asia
+P032,S19J PRO 110T,miner,new,False,110.0,,865.2,,,location: Asia
+P033,S19JPRO+ 120T,miner,new,False,120.0,,1013.4,,,location: Asia
+P034,S19K PRO 115T,miner,new,False,115.0,,1064.0,,,location: Asia
+P035,S21 188T,miner,new,False,188.0,,2396.0,,,location: Asia
+P036,S19kpro 115T Special offer,miner,new,False,115.0,,772.0,,,remarks: Special offer | location: Asia
+P037,S19K PRO 120T (23j/t),miner,new,False,120.0,,818.4,,,remarks: 23j/t | location: Asia
+P038,S21+ 216T,miner,new,False,216.0,,3088.8,,,location: Asia
+P039,S21+ 235T Oct future,miner,new,False,235.0,,3308.8,,,remarks: October future | location: Asia
+P040,S21 Pro 234T,miner,new,False,234.0,,3580.2,,,location: Asia
+P041,S21XP 270T,miner,new,False,270.0,,4960.0,,,location: Asia
+P042,S21+hydro 395T mix October future,miner,new,False,395.0,,6083.0,,,remarks: October future | location: Asia
+P043,S21+hydro 358T,miner,new,False,358.0,,5237.54,,,location: Asia
+P044,Whatsminer M50S++ 21w 160T,miner,new,False,160.0,,1656.0,,,location: Asia
+P045,Whatsminer M60s 188T,miner,new,False,188.0,,2425.2,,,location: Asia
+P046,M60s+ 17w 200T Mix future Octo.,miner,new,False,200.0,,2750.0,,,remarks: October future | location: Asia
+P047,Whatsminer M60S++ 222T,miner,new,False,222.0,,3974.0,,,location: Asia
+P048,Avalon A15PRO 215-227T,miner,new,False,227.0,,3530.0,,,location: Asia
+P049,Avalon Q90T,miner,new,False,90.0,,1749.0,,,location: Asia
+P050,A15Pro 221T,miner,new,False,221.0,,3525.0,,,location: Asia
+P051,A15XP 209T,miner,new,False,209.0,,3104.0,,,location: Asia
+P052,Hosting - $0.0675/kwh - $0.068 MOQ 25       $0.071/kwh MOQ: 1,hosting,new,False,,,,,,"remarks: MOQ details | location: US"
+P053,Hosting - $0.065/kwh - MOQ: 4700  (must take all),hosting,new,False,,,,,,"remarks: MOQ 4700 (must take all) | location: US"
+P054,1000kVA (34.5 / 480WYE),transformer,new,False,,,45000.0,,,location: US
+P055,"1750kVA (12.47 WYE, 415 WYE)",transformer,new,False,,,49980.0,1,,location: US
+P056,"2600kVA (12.47Delta, 415WYE)",transformer,new,False,,,55880.0,,,location: US
+P057,"SUNBELT SOLOMUN: 2500kVA (13.8Delta, 415WYE)",transformer,new,False,,,45000.0,,,location: US
+P058,"3250kVA (13.8kv Delta, 415v)",transformer,new,False,,,63800.0,1,,location: US
+P059,"2600kVA (13.8kv, 415)",transformer,new,False,,,49980.0,1,,location: US
+P060,"Transformer 2600kVA(34.5kv, 415v)",transformer,new,False,,,53800.0,,,location: US
+P061,"Transformer 2600kVA(34.5kv, 415v)",transformer,new,False,,,57880.0,,,location: US
+P062,"Transformer 3000kVA(13.8kv Delta - 500v)",transformer,new,False,,,71800.0,,,location: US
+P063,"Transformer 3000kVA (13.8 Delta, 415 WYE)",transformer,new,False,,,76800.0,,,location: US
+P064,"Transformer 3000kVA (13.8Delta, 415wye)",transformer,new,False,,,77800.0,,,location: US
+P065,"1750kVA (13.8kv Delta, 415v)",transformer,new,False,,,63800.0,1,,location: US
+P066,Immersion: Submer,immersion_system,new,False,,,175000.0,2,,location: US
+P067,Air cooled: 20 foot container,container,new,False,,,22800.0,2,,location: US
+P068,Air cooled: Antbox N5 V2,container,new,False,,,35000.0,4,,location: US
+P069,Air cooled: 20 foot container,container,new,False,,,38800.0,,,location: US
+P070,40foot container / 1.6MW (custom build),container,new,False,,,84000.0,,,remarks: custom build | location: US
+P071,"Hydro: Custom container, 240 unit",container,new,False,,,,,,remarks: Hydro custom container | location: US
+P072,Hydro: HK3 V6,container,new,False,,,,,,location: US
+P073,"Cables: P13 to C20 (S21 Cable, L9) (5 feet)",cables,new,False,,,16.0,,,location: US
+P074,Cables: C20 to dual C13 (S19) (5 feet),cables,new,False,,,11.0,,,location: US
+P075,Cables: C20 to single C19 (5 feet),cables,new,False,,,10.0,,,location: US
+P076,Cables: C20 to dual C19 (5 feet),cables,new,False,,,10.5,,,location: US
+P077,12 port T21 PDU,pdu_fan,new,False,,,380.0,,,location: US
+P078,24 port T21 PDU,pdu_fan,new,False,,,690.0,,,location: US
+P079,12 port C19 PDU,pdu_fan,new,False,,,330.0,,,location: US
+P080,S19 fan,pdu_fan,new,False,,,11.0,,,location: US
+P081,S19 premium fan,pdu_fan,new,False,,,12.0,,,location: US
+P082,S21 fan,pdu_fan,new,False,,,12.0,,,location: US
+P083,S21 PSU,pdu_fan,new,False,,,315.0,,,location: US

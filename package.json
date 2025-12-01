@@ -1,0 +1,32 @@
+{
+  "name": "christy-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:kb": "node scripts/build-knowledge-base.mjs",
+    "dev": "npm run build:kb && next dev & wait-on http://localhost:3000 && open http://localhost:3000",
+    "build": "npm run build:kb && next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+
+  
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.2.3",
+    "next": "14.2.5",
+    "papaparse": "^5.5.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.3"
+  }
+}
