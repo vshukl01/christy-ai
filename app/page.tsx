@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import downloadChatAsPdf from "@/lib/downloadChatpdf";
+
 
 const CUSTOMER_NAME = "Ved"; // change this if you want to demo with another name
 
@@ -100,6 +102,7 @@ export default function HomePage() {
             </span>
           </div>
         </header>
+        
 
         <main className="chat-window">
           {messages.map((m, idx) => (
@@ -146,6 +149,14 @@ export default function HomePage() {
             {loading ? "Sending..." : "Send"}
           </button>
         </form>
+          <button 
+            type="button" 
+            onClick={() => downloadChatAsPdf(messages)}
+            className="download-btn"
+          >
+            Download chat as PDF
+          </button>
+        
       </div>
     </div>
   );

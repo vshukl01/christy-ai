@@ -270,6 +270,23 @@ body {
   cursor: not-allowed;
 }
 
+.download-btn {
+  margin-left: 12px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid #3b82f6;
+  background: transparent;
+  color: #3b82f6;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.download-btn:hover {
+  background: #3b82f6;
+  color: #0b1120;
+}
+
+
 /* Small screens */
 
 @media (max-width: 640px) {

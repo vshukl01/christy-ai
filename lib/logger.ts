@@ -1,24 +1,36 @@
+// lib/logger.ts
 import fs from "fs";
 import path from "path";
 
-const logsDir = path.join(process.cwd(), "logs");
-const logFile = path.join(logsDir, "christy.log");
+const LOG_PATH = path.join(process.cwd(), "logs", "christy.log");
 
-// Ensure folder exists
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir);
+// We never want to write to disk on Vercel / production – file system is read-only
+const IS_SERVERLESS =
+  process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+
+function safeFileLog(line: string) {
+  try {
+    if (IS_SERVERLESS) {
+      // In production / Vercel: just send to console so it appears in function logs
+      console.log(line);
+      return;
+    }
+
+    // Local dev: write to logs/christy.log
+    fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
+    fs.appendFileSync(LOG_PATH, line + "\n", "utf8");
+  } catch (err) {
+    // Never let logging crash the app
+    console.error("Logging failed:", err);
+  }
 }
 
-export function logEvent(event: string, data: any) {
-  try {
-    const timestamp = new Date().toISOString();
-    const logEntry = `
-[${timestamp}] ${event}
-${JSON.stringify(data, null, 2)}
----------------------------------------
-`;
-    fs.appendFileSync(logFile, logEntry, "utf8");
-  } catch (err) {
-    console.error("Failed to write log", err);
-  }
+export function logEvent(label: string, payload: any) {
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    label,
+    payload,
+  });
+
+  safeFileLog(line);
 }

@@ -9,11 +9,10 @@
     "start": "next start",
     "lint": "next lint"
   },
-
-  
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^17.2.3",
+    "jspdf": "^3.0.4",
     "next": "14.2.5",
     "papaparse": "^5.5.3",
     "react": "^18.2.0",
