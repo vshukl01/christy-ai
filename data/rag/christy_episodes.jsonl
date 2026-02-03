@@ -1,0 +1,69 @@
+// scripts/parse-christy-log.mjs
+import fs from "fs";
+import path from "path";
+
+const LOG_PATH = "logs/christy.log";
+const OUT_PATH = "data/rag/christy_episodes.jsonl";
+
+const raw = fs.readFileSync(LOG_PATH, "utf8");
+
+// Split by the dashed separators (your log uses many)
+const blocks = raw.split(/-+\n+/).map(s => s.trim()).filter(Boolean);
+
+// We’ll scan blocks and pair "User Query" JSON with next "Christy Response" JSON
+const episodes = [];
+let pendingUser = null;
+
+function safeJsonParse(s) {
+  try { return JSON.parse(s); } catch { return null; }
+}
+
+function maskPII(text = "") {
+  return text
+    .replace(/\b[\w.-]+@[\w.-]+\.\w+\b/g, "[EMAIL]")
+    .replace(/\b(\+?\d[\d\-\(\)\s]{7,}\d)\b/g, "[PHONE]");
+}
+
+for (const b of blocks) {
+  // Example header line: [2025-12-02T18:42:24.980Z] User Query
+  const headerMatch = b.match(/^\[(.+?)\]\s+(User Query|Christy Response)\s*\n([\s\S]+)$/);
+  if (!headerMatch) continue;
+
+  const ts = headerMatch[1];
+  const kind = headerMatch[2];
+  const rest = headerMatch[3].trim();
+
+  const obj = safeJsonParse(rest);
+  if (!obj) continue;
+
+  if (kind === "User Query") {
+    pendingUser = { ts, obj };
+  } else if (kind === "Christy Response") {
+    if (!pendingUser) continue;
+
+    const userText = maskPII(pendingUser.obj?.content || "");
+    const agentText = maskPII(obj?.reply || "");
+
+    const episode = {
+      id: `log_${pendingUser.ts}_${ts}`.replace(/[^a-zA-Z0-9_:-]/g, ""),
+      source: "logs/christy.log",
+      type: "chat_episode",
+      text: `Customer: ${userText}\nChristy: ${agentText}`,
+      metadata: {
+        user_ts: pendingUser.ts,
+        agent_ts: ts,
+        contextUsed: obj?.contextUsed || [],
+      }
+    };
+
+    episodes.push(episode);
+    pendingUser = null;
+  }
+}
+
+// Write JSONL
+fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
+const out = episodes.map(e => JSON.stringify(e)).join("\n") + "\n";
+fs.writeFileSync(OUT_PATH, out, "utf8");
+
+console.log(`Wrote ${episodes.length} episodes -> ${OUT_PATH}`);
