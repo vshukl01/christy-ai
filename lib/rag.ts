@@ -3,9 +3,6 @@ import fs from "fs";
 import path from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Embedding model
-const EMBEDDING_MODEL = "models/text-embedding-004";
-
 export type KBEntry = {
   id: string;
   text: string;
@@ -16,34 +13,26 @@ export type KBEntry = {
 
 let KB_CACHE: KBEntry[] | null = null;
 
-/* =======================
-   Gemini Client (Safe)
-======================= */
+// Optional override via env
+const EMBEDDING_MODEL_OVERRIDE = (process.env.EMBEDDING_MODEL || "").trim();
 
-function getGeminiClient() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new Error(
-      "Missing GEMINI_API_KEY in server environment. Add it to Vercel Env Vars and .env.local."
-    );
-  }
-  return new GoogleGenerativeAI(key);
-}
+// Keep same candidates as the KB script
+const EMBEDDING_MODEL_CANDIDATES = [
+  "models/text-embedding-004",
+  "models/gemini-embedding-001",
+  "models/text-embedding-001",
+  "models/embedding-001",
+];
 
-/* =======================
-     Load Knowledge Base
-======================= */
+let SELECTED_EMBED_MODEL: string | null = null;
 
 function loadKB(): KBEntry[] {
   if (KB_CACHE) return KB_CACHE;
 
-  // ✅ Your actual structure is data/rag/knowledge_base.json
   const kbPath = path.join(process.cwd(), "data", "rag", "knowledge_base.json");
 
   if (!fs.existsSync(kbPath)) {
-    console.warn(
-      `[RAG] knowledge_base.json not found at ${kbPath} → returning empty context.`
-    );
+    console.warn("[RAG] knowledge_base.json not found → returning empty context.");
     KB_CACHE = [];
     return KB_CACHE;
   }
@@ -53,15 +42,10 @@ function loadKB(): KBEntry[] {
   return KB_CACHE;
 }
 
-/* =======================
-       Cosine Similarity
-======================= */
-
 function cosineSim(a: number[], b: number[]): number {
   let dot = 0;
   let magA = 0;
   let magB = 0;
-
   const len = Math.min(a.length, b.length);
 
   for (let i = 0; i < len; i++) {
@@ -74,29 +58,53 @@ function cosineSim(a: number[], b: number[]): number {
   return dot / denom;
 }
 
-/* =======================
-    Embed User Question
-======================= */
-
-async function embedQuery(text: string): Promise<number[]> {
-  const ai = getGeminiClient();
-  const model = ai.getGenerativeModel({
-    model: EMBEDDING_MODEL,
-  });
-
-  const result = await model.embedContent(text);
-  const vec = result?.embedding?.values;
-
-  if (!Array.isArray(vec) || vec.length === 0) {
-    throw new Error("Failed to create query embedding (empty embedding vector).");
-  }
-
-  return vec;
+function getClient(): GoogleGenerativeAI {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Missing GEMINI_API_KEY in server environment.");
+  return new GoogleGenerativeAI(apiKey);
 }
 
-/* =======================
-   Retrieve Matching Context
-======================= */
+async function tryEmbedOnce(ai: GoogleGenerativeAI, modelName: string) {
+  const model = ai.getGenerativeModel({ model: modelName });
+  const resp = await model.embedContent("ping");
+  const vec = (resp as any)?.embedding?.values || [];
+  if (!Array.isArray(vec) || vec.length < 10) {
+    throw new Error(`Embedding vector invalid for model ${modelName}`);
+  }
+}
+
+async function pickEmbeddingModel(ai: GoogleGenerativeAI): Promise<string> {
+  if (SELECTED_EMBED_MODEL) return SELECTED_EMBED_MODEL;
+
+  if (EMBEDDING_MODEL_OVERRIDE) {
+    await tryEmbedOnce(ai, EMBEDDING_MODEL_OVERRIDE);
+    SELECTED_EMBED_MODEL = EMBEDDING_MODEL_OVERRIDE;
+    return SELECTED_EMBED_MODEL;
+  }
+
+  for (const m of EMBEDDING_MODEL_CANDIDATES) {
+    try {
+      await tryEmbedOnce(ai, m);
+      SELECTED_EMBED_MODEL = m;
+      return SELECTED_EMBED_MODEL;
+    } catch {
+      // try next
+    }
+  }
+
+  throw new Error(
+    `No embedding model worked. Tried: ${EMBEDDING_MODEL_CANDIDATES.join(", ")}`
+  );
+}
+
+async function embedQuery(text: string): Promise<number[]> {
+  const ai = getClient();
+  const modelName = await pickEmbeddingModel(ai);
+  const model = ai.getGenerativeModel({ model: modelName });
+
+  const result = await model.embedContent(text);
+  return (result as any)?.embedding?.values || [];
+}
 
 export async function retrieveRelevantContext(
   query: string,
@@ -111,192 +119,26 @@ export async function retrieveRelevantContext(
   const scored = kb.map((entry) => {
     let score = cosineSim(queryEmbedding, entry.embedding || []);
     const meta = entry.metadata || {};
-    const category = (meta.category || "").toString().toLowerCase();
 
-    // Small bonuses based on metadata matches
+    // tiny boosts
     try {
       if (meta.model_name) {
         const m = String(meta.model_name).toLowerCase();
-        if (m && qLower.includes(m)) score += 0.06;
+        if (m && qLower.includes(m)) score += 0.04;
       }
       if (meta.product_id) {
         const id = String(meta.product_id).toLowerCase();
-        if (id && qLower.includes(id)) score += 0.03;
+        if (id && qLower.includes(id)) score += 0.02;
       }
-
-      if (entry.source === "price_sheet") {
-        // Miner-related queries
-        if (
-          /s19|s21|m50|m60|whatsminer|mining|asic|hashrate|th\/s/i.test(query) &&
-          category === "miner"
-        ) {
-          score += 0.05;
-        }
-
-        // Transformer-related queries
-        if (
-          /transformer|kva|mva|padmount|wye|delta|tap/i.test(query) &&
-          category === "transformer"
-        ) {
-          score += 0.06;
-        }
-
-        // Hosting-related queries
-        if (
-          /hosting|colocation|colo|facility/i.test(query) &&
-          category === "hosting"
-        ) {
-          score += 0.04;
-        }
+      if (meta.category) {
+        const c = String(meta.category).toLowerCase();
+        if (c && qLower.includes(c)) score += 0.01;
       }
-    } catch {
-      // ignore metadata problems
-    }
+    } catch {}
 
     return { entry, score };
   });
 
   scored.sort((a, b) => b.score - a.score);
-
-  // Return top-K entries
   return scored.slice(0, topK).map((s) => s.entry);
 }
-
-// // lib/rag.ts
-// import fs from "fs";
-// import path from "path";
-// import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// // Gemini client
-// const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-// // Embedding model
-// const EMBEDDING_MODEL = "models/text-embedding-004";
-
-// export type KBEntry = {
-//   id: string;
-//   text: string;
-//   source: string;
-//   metadata: Record<string, any>;
-//   embedding: number[];
-// };
-
-// let KB_CACHE: KBEntry[] | null = null;
-
-// /* =======================
-//      Load Knowledge Base
-// ======================= */
-
-// function loadKB(): KBEntry[] {
-//   if (KB_CACHE) return KB_CACHE;
-
-//   const kbPath = path.join(process.cwd(), "data", "knowledge_base.json");
-
-//   if (!fs.existsSync(kbPath)) {
-//     console.warn("[RAG] knowledge_base.json not found → returning empty context.");
-//     KB_CACHE = [];
-//     return KB_CACHE;
-//   }
-
-//   const raw = fs.readFileSync(kbPath, "utf8");
-//   KB_CACHE = JSON.parse(raw) as KBEntry[];
-//   return KB_CACHE;
-// }
-
-// /* =======================
-//        Cosine Similarity
-// ======================= */
-
-// function cosineSim(a: number[], b: number[]): number {
-//   let dot = 0;
-//   let magA = 0;
-//   let magB = 0;
-
-//   const len = Math.min(a.length, b.length);
-
-//   for (let i = 0; i < len; i++) {
-//     dot += a[i] * b[i];
-//     magA += a[i] * a[i];
-//     magB += b[i] * b[i];
-//   }
-
-//   const denom = Math.sqrt(magA) * Math.sqrt(magB) || 1;
-//   return dot / denom;
-// }
-
-// /* =======================
-//     Embed User Question
-// ======================= */
-
-// async function embedQuery(text: string): Promise<number[]> {
-//   const model = ai.getGenerativeModel({
-//     model: EMBEDDING_MODEL, // "text-embedding-004"
-//   });
-
-//   const result = await model.embedContent(text);
-
-//   return result.embedding.values;
-// }
-
-// /* =======================
-//    Retrieve Matching Context
-// ======================= */
-
-// export async function retrieveRelevantContext(
-//   query: string,
-//   topK = 8
-// ): Promise<KBEntry[]> {
-//   const kb = loadKB();
-//   if (!kb.length) return [];
-
-//   const queryEmbedding = await embedQuery(query);
-//   const qLower = query.toLowerCase();
-
-//   const scored = kb.map((entry) => {
-//     let score = cosineSim(queryEmbedding, entry.embedding || []);
-//     const meta = entry.metadata || {};
-//     const category = (meta.category || "").toString().toLowerCase();
-
-//     // Small bonuses based on metadata matches
-//     try {
-//       if (meta.model_name) {
-//         const m = String(meta.model_name).toLowerCase();
-//         if (m && qLower.includes(m)) score += 0.06;
-//       }
-//       if (meta.product_id) {
-//         const id = String(meta.product_id).toLowerCase();
-//         if (id && qLower.includes(id)) score += 0.03;
-//       }
-
-//       if (entry.source === "price_sheet") {
-//         // Miner-related queries
-//         if (/s19|s21|m50|m60|whatsminer|mining|asic|hashrate|th\/s/i.test(query) &&
-//             category === "miner") {
-//           score += 0.05;
-//         }
-
-//         // Transformer-related queries
-//         if (/transformer|kva|mva|padmount|wye|delta|tap/i.test(query) &&
-//             category === "transformer") {
-//           score += 0.06;
-//         }
-
-//         // Hosting-related queries
-//         if (/hosting|colocation|colo|facility/i.test(query) &&
-//             category === "hosting") {
-//           score += 0.04;
-//         }
-//       }
-//     } catch {
-//       // ignore metadata problems
-//     }
-
-//     return { entry, score };
-//   });
-
-//   scored.sort((a, b) => b.score - a.score);
-
-//   // Return top-K entries
-//   return scored.slice(0, topK).map((s) => s.entry);
-// }
-

@@ -1,0 +1,1020 @@
+[
+  {
+    "chat_id": "set1_chat1_stock_transformer_inquiry",
+    "topic": "Stock Transformer Inquiry (2500 kVA, Illinois)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey Christy, saw your post about the 2500 kVA transformer. Still available?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Hey! 🙂 Yep, that one’s still in stock — 12.47 kV → 415 V, 3-phase WYE, fully tested in Illinois with warranty. It’s one of our faster-moving units right now.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Nice. What’s the price delivered to Georgia?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "For this type of equipment we need to book a dedicated truck, so it will go directly only with your goods so the benefit is that it's very fast delivery. Shipping cost for this transformer is $5,900. You can fit up to 3 units on a truck.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Hmm. I’ve seen cheaper ones online.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally fair, and thanks for pointing that out — that’s a great question. A lot of lower-priced ones skip testing or warranty, which ends up costing more if something’s off. This one’s fully tested, ships within 2–3 days, and comes with Voltique’s support. You’ll get stress-free uptime instead of surprise headaches ⚡",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "That’s fair. You have the test sheet?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Just sent it to your email. Want me to hold the unit for you while you review?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, please hold it.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Done 🤝 I’ll mark it as reserved under your name for 24 hours. If you’re happy with the report, we can move straight to invoice.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Sounds good, thanks!",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Anytime 🙂 Efficient, stress-free mining starts with reliable power. Glad to help you set that up right.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set1_chat2_custom_build_inquiry",
+    "topic": "Custom Build Inquiry (2000 kVA, CE vs UL)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey, can you do a 2000 kVA custom build? Need 12.47 kV → 480 V Delta, copper windings.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Great question — and nice spec choice. Yes, we can absolutely build that. Quick check — have you worked with anyone from Voltique before or is this your first time reaching out?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "First time.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Welcome in! Many of our best clients started with a custom unit just like this one. We can make it with copper or aluminum, and it will have UL listiting.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "It needs to be UL, though.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it 👍",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect. This will be custom built to your exact specs and only 50 % to start production. We’ll tweak everything until it’s exactly how you want — taps, windings, label, all of it. Sound good?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Sounds easy enough.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "That’s the goal 🙂 setting up a successful mining operation with ease.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "If you were to move forward with the purchase, where would you want it shipped?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Texas",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Thats great, we ship often to Texas there is many mining sites there. There is free shipping included in the price as wel.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "How long does it take to make it?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "About 20-40 days production plus shipping to Texas takes about 35 days. If you are in a rush, there is an express option for shipping as well. We handle everything from start to finish. All you have to do is offload when the truck arrives.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "I would like to move forward with it.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set1_chat3_quality_concern_repeat_buyer",
+    "topic": "Quality Concern (Repeat Buyer Skeptic)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey, I got burned before. Bought a used transformer elsewhere — failed in 2 weeks. How can I trust yours won’t?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally fair, and thanks for sharing that — that’s a great question. Many of our long-term buyers felt the same way at first. What they found was that Voltique tests every single custom built transformer unit before shipping, and we back it with a 2 year warranty. Pretty much every transformer we sell, even the in stock units, come with warranty for peace of mind.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Warranty covers what exactly?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Everything on the electrical side — core, windings, load tests. If anything fails under normal use, we repair or replace.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Okay. That’s better than what I had. Where does it ship from?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Mostly Illinois or Texas, depending on stock. For you, I’d ship from Illinois — usually $5.9 K per truck, insured, fits up to 3 units if you’re scaling.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Alright, sounds good. Send me the invoice.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "On it 🤝 Do you want the custom built or the in stock units? We have many in stock in USA. What are your specs? I will check if we have it in stock, that way you dont have to wait. ⚡",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set1_chat4_let_me_think_objection",
+    "topic": "“Let Me Think” Objection on 3000 kVA transformer (Ben Franklin Close)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Appreciate the info, but I’ll need to think about it.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally understand — you should feel confident before moving forward. Can I quickly help you list out the reasons for and against, just so it’s clear?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Sure.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "For:\n✅ Tested and ready to ship\n✅ No wait time\n✅ Warranty\n✅ Support from a real team, not a marketplace seller\nAgainst:\n❌ Price higher than untested units\n\nLooks like more reasons for than against 🙂 Would you say that’s fair?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, that’s fair.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Then let’s keep things easy,  want me to hold it under your name while you confirm shipping?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, hold it.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Done ⚡ I’ll pencil you in. We’ll make sure your setup stays efficient and stress-free.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set1_chat5_bulk_transformer_deal",
+    "topic": "Bulk Transformer Deal (Assumption Close)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "We need 3 transformers for our 6 MW site. Can you handle that volume?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Absolutely! Great to hear you’re scaling up. We can ship all 3 on one truck — $5.9 K for the load, insured, straight from Texas. What specs are you looking for — 3000 kVA 13.8 → 415 WYE?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Exactly that.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect — I’ll draft the invoice for 3 units. Do you want them delivered to the same site or split shipment?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Same site.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it 👍 Price per unit comes down a bit for bulk,  around $53K each, fully tested with reports.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Sounds good.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Awesome 🤝 I’ll note your delivery address. Let’s get your power ready so you can mine without any stress or delays ⚡",
+        "timestamp": null
+      }
+    ]
+  },
+
+  {
+    "chat_id": "set2_chat1_first_time_buyer_trust_objection",
+    "topic": "First-Time Buyer / Trust Objection (S21 Pro 234T)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey, saw your post about the S21 Pro 234T. Is this new or used?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Hey! Great question 🙂 These are brand-new, straight from Bitmain — factory-sealed boxes, standard manufacturer warranty. Have you bought miners before or is this your first setup?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "First one. Just checking options.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "That’s exciting — starting mining is a big move ⚡ Totally get wanting to compare. Many of our first-time buyers felt the same way until they saw how simple we make it. We handle invoice → shipment → tracking, all in one place.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "I’ve heard of scams before though.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Completely fair. We’re 5-star rated on Trustpilot, and I can send photos from recent shipments if you’d like. Would that help you feel more comfortable?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, that’d help.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Just sent a few same model, delivered last week.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Here is a recommendation letter from one of our customers, he says it best.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Thank you, I will think about it.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set2_chat2_bulk_order_price_objection",
+    "topic": "Bulk Order / Price Objection (10 × S21+ 216T)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I’m looking for 10 × S21+ 216T, but your sheet says $14.3/T. Can you do better?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Appreciate the honest question 🙂 For 10 units I can definitely check for better pricing. Whats your name and where do you want these shipped?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah.Texas and my name is John.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it. With bulk freight and combined pallet, I can discount $50 per unit. That’s factory-tested gear, ready to mine. Its one of our most popular miners right now, since its new model and very efficient.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Hmm, still higher than one quote I got from China.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally fair — many clients said the same, but they came back because we help handle everything for you with the Voltique signature package. You get predictable uptime, not surprise downtime. You can buy this machine with hosting if you need, that way you dont have to look for hosting or have that noise in the garage.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "If you’d like, I’ll summarize the value real quick:\n✅ Warranty & support\n✅ Ready to ship\n✅ Hosting ready in USA, so you dont have to have that noise in your house.\n✅ The hosting facility is managed by professionals, so you get the best experiance.\nWould you say those are worth a few extra dollars per T?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, fair point.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect. What's your email, John?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "john@gmail.com",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "I have sent you the invoice in the inbox. There are payment instructions there, we are currently not accepting card payments, but you can pay with wire and USDT/USDC/BTC.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set2_chat3_used_miner_quality_concerns",
+    "topic": "Used Miner / Quality Concerns (L7)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey, what’s the deal on used L7s you mentioned?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Hey! Yep — we’ve got a few tested L7 9050m units this week, around $1,988 each, limited stock. All bench-tested before shipping.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Used units worry me. What if it dies after a week?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally fair. Many miners felt the same — that’s why we include a 7-day DOA warranty and test each machine before sending. If anything fails right out of the box, we repair or refund, no hassle.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Okay, that helps.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Let me send you some photos of the machines.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Thank you.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Done 🤝 Do you need hosting for these? Or do you have a place to run them?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "I'm planning to run them at home.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "If you want, we have professional hosting partners like hotels for miners so they can run their best when the cooling and everything is optiomal. We can handle everything like shipping it there and setting it up. You dont have to spend any time, and can focus on things that matter to you instead. We call it Voltique signature package.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Ok, I can take that.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Awesome ⚡ Welcome aboard — efficient, stress-free mining starts here.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set2_chat4_hosting_add_on_close",
+    "topic": "Hosting Add-On Close (Alternative Close, S19k Pro 120T)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Thinking of an S19k Pro 120T, but don’t have a hosting spot yet.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Good call — that’s a strong unit. We actually have hosting slots open right now in Nebraska and New York. New York is a little more expensive, but the site has more uptime. About 99% uptime is wonderful.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Hosting sounds easier.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Exactly 🙂 We’ll handle setup, network, and maintenance. Hosting starts at $0.071 per kWh, uptime 99 %+, and setup fee $35/unit. Once you move forward, you’ll see it online in about a week or so.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Alright, that’s reasonable.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect. I’ll bundle miner + hosting on one invoice — keeps it simple. Do you prefer payment via wire or crypto?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Wire.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it 🤝 I’ll mark it wire-ready and send docs shortly. We’ll get you hashing in peace.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set2_chat5_indecisive_prospect_today_only",
+    "topic": "Indecisive Prospect / “Need to Think” (M60S++ 222T, Today-Only Close)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I like the M60S++ 222T you have, but not sure if I should buy today.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally fair — want to make sure it’s the right move. Just so you know, we’re running a today-only bulk discount from our supplier",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Hmm… that could work.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Awesome 🙂 Here’s how it usually goes: Once you process the invoice on your side, we will go ahead and ship the machine to the warehouse. You will sign a hosting agreement with our partner for 1 or 2 years, up to you.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, that’s reasonable.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect ⚡ I’ll mark one M60S++ under your name now. You’ll get the invoice shortly and tracking right after payment. Mining made stress-free 🙂",
+        "timestamp": null
+      }
+    ]
+  },
+
+  {
+    "chat_id": "set3_chat1_hosting_inquiry_first_time",
+    "topic": "Hosting Inquiry (First-Time Miner)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey, I just bought a few S19s. Do you guys do hosting too?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Hey 🙂 Yes — we’ve got hosting slots open in Nebraska and New York right now. Quick one — how many units are you planning to host?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Just 10 for now.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect size to start ⚡ For 1–20 units, hosting is $0.071 per kWh with 99 %+ uptime. Setup fee is $35 per unit, and your machines can be online within 7–10 days of arrival.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Hmm… I’m still new to this. How do I know my miners are safe?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "That’s a great question  and many new clients ask the same. Each site has 24 / 7 monitoring and monthly performance reports. You can also check your machines 24/7 from the pool of your choice.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Alright, that’s nice. What’s the next step?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "I’ll send a simple invoice for the setup fee. Once paid, we will share with you the ship to address or if you want us to arrange the pickup of the machines we can handle that oo. Would you like to ship direct from your current warehouse or home?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Direct from warehouse.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it 🤝 I’ll send the label and agreement today so you can start mining without any downtime.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set3_chat2_hosting_cost_objection",
+    "topic": "Hosting Cost Objection (Business Owner)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "$0.068 per kWh feels high compared to what I’ve heard in Texas.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally fair — that’s a good point. Texas rates can look lower, but uptime and cooling there can dip below 90 % in summer. Our Nebraska site averages 98.5 % uptime — so your machines mine more days a year.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "That actually matters a lot.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Exactly 🙂 Lower rate isn’t helpful if you lose production days. When you factor that in, it’s the cheapest option long term.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Im ready",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Done ⚡ I’ll send you the details right now.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set3_chat3_container_setup_inquiry",
+    "topic": "Container Setup Inquiry (Scaling Customer)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "We’re looking to set up a container farm. Do you sell containers or just transformers?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "We do both 🙂 Our containers are turnkey — pre-wired with PDUs, fans, and containers for 180–360 miners. Are you planning to run S19s or S21s?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Mix of S21 and M60S++.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect combo ⚡",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "What’s the price range?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Are you in a rush or could you wait for more custom options?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Im in a rush.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "We have some options in USA. Do you want immersion or air?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Air",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "We have Antbox N5V2 in USA ready to ship. That would be really fast option. We also have some 40 foot containers (link product).",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Those look nice.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Which one do you like the best?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "40 foot",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Good choice. If you were to move forward, where would you want it shipped?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Texas",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "We can fit one 40 foot container onto a truck to Texas and it will go direct to you so it will be super quick. We handle everything, you just have to offload when the truck arrives.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Is there anything I havent answered so far about the container?",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set3_chat4_pdu_and_cables_support_upsell",
+    "topic": "PDU and Cables (Support Upsell)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I bought a transformer from you guys last month — do you also have PDUs and cables?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Hey again 🙂 Yes, we’ve got PDUs, Camlock sets, and bus-bar connectors in stock. How many miners are you connecting?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "About 90.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it — for that load, you’ll need two 400A PDUs with 10-ft Camlock sets. We can bundle them with the transformer you already purchased to match voltage.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Nice. How much?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Each PDU is $1 350, and Camlocks are $280 per set. If you get both today, I can add free freight since you’re a repeat customer 🙂",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "That’s solid. Let’s do that.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect ⚡ I’ll bundle your invoice and send tracking once it ships. Keeping your operation efficient and organized — that’s our goal.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set3_chat5_hosting_container_combo",
+    "topic": "Hosting + Container Combo (Big Operator)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "We’re considering hosting some units and deploying the rest in containers. Can Voltique handle both?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Absolutely ⚡ That’s actually how many of our larger clients scale. We host part of the fleet while their container site is built. That way, hashing starts immediately.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Makes sense. What’s the timing for container build?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "About 4–5 weeks from approval to delivery. Hosting can start in under 10 days, so you get ROI while we prep your site.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "I like that. Do you offer any discount for doing both?",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Yes 🙂 If you host 20+ units and order a container, we can apply a $2 K rebate on the container invoice. Would you like me to send both quotes side-by-side so you can compare?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yes, please do.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Sent ✅ — and just to make it easy, I’ll hold 20 hosting slots for you until Friday. That way you won’t lose your rate while you review the container details.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Appreciate that!",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Anytime 🙂 We make scaling simple and stress-free — that’s the Voltique way.",
+        "timestamp": null
+      }
+    ]
+  },
+
+  {
+    "chat_id": "set4_chat1_polite_follow_up",
+    "topic": "Polite Follow-Up After Initial Inquiry",
+    "messages": [
+      {
+        "role": "agent",
+        "content": "Hey John 👋 just checking in on the 2600 kVA we discussed last week. No rush — I just wanted to make sure you had everything you needed.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Hey, still comparing a few options. Been busy.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Totally get it 🙂 Many of our clients said the same before choosing Voltique — they liked having test photos + drawings handy while deciding. Would you like me to send that one-pager summary?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Sure, send it.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Sent ✅ — take a look when you can. Would you like me to tentatively hold the unit for 48 h so it doesn’t move meanwhile?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yes, please do.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Done ⚡ — I’ll keep you updated. We’ll keep this smooth and stress-free, just like your mining setup should be.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set4_chat2_post_delivery_follow_up_referral",
+    "topic": "Post-Delivery Follow-Up (+ Referral Ask)",
+    "messages": [
+      {
+        "role": "agent",
+        "content": "Hey Ben 👋 hope your S21 Pros are humming nicely. Everything running smoothly so far?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, everything’s perfect actually. Appreciate the fast shipping.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "That’s great to hear ⚡ We’re big on making sure clients feel supported even after delivery. Quick one — if you know any other miners or facilities upgrading soon, would you mind introducing us? We like working with other nice people like you 🙂",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Haha sure, I can think of one guy.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Amazing. I’ll draft a quick intro line you can forward, super easy. And of course, next time you order, you’ll get priority stock access.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set4_chat3_repeat_buyer_request",
+    "topic": "Repeat Buyer Request (Scaling Up)",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hey Christy, the last two 3000 kVA units are working great. We’re expanding — need two more.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Love hearing that ⚡ Congrats on the growth! Same spec as before (13.8 → 415 WYE)?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Exactly.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Got it — we have two identical builds ready in Illinois. If you’d like, I can apply a return-buyer discount since you’ve already verified our quality.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "That’d be awesome.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect — I’ll update the invoice and include shipping on the house. Appreciate you trusting Voltique again 🙂",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set4_chat4_reengaging_dormant_lead",
+    "topic": "Re-Engaging Dormant Lead (“We’re Good for Now”)",
+    "messages": [
+      {
+        "role": "agent",
+        "content": "Hey Alex, totally random but we just got a fresh batch of used S21+ 235T units in — under $14 /T, tested. Thought of you since you were looking for something short-term a few months back.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "We’re good for now — already bought elsewhere.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Fair enough — that’s great 🙂 If you ever look to expand or upgrade, I’ll make sure you get early access to future stock. Would you like me to keep you on the private Telegram updates?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Sure, that’s fine.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Perfect ⚡ — I’ll tag you. No spam, just deals that make sense for scaling efficiently.",
+        "timestamp": null
+      }
+    ]
+  },
+  {
+    "chat_id": "set4_chat5_client_testimonial_cross_sell",
+    "topic": "Client Testimonial + Cross-Sell (Transformers → Hosting)",
+    "messages": [
+      {
+        "role": "agent",
+        "content": "Hey Michael, quick check-in — how’s the 1750 kVA performing so far?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Running flawlessly. Honestly surprised how easy the install was.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Love that 🙂 Many clients say the same — solid equipment makes everything else smoother. Since it’s running well, have you considered hosting future units with us? We’ve got 99 % uptime sites and can ship miners directly there.",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "I didn’t realize you guys hosted too.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Yep! We manage the whole journey — power, hardware, and operations. Would you like me to send a simple overview of rates and locations?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "Yeah, why not.",
+        "timestamp": null
+      },
+      {
+        "role": "agent",
+        "content": "Sent ✅ — if you’d like, I can reserve 10 slots in Nebraska just in case. Keeps your ROI flowing without any downtime ⚡",
+        "timestamp": null
+      }
+    ]
+  }
+]
