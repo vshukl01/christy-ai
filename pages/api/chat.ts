@@ -1,4 +1,3 @@
-// pages/api/chat.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { retrieveRelevantContext } from "@/lib/rag";
@@ -9,8 +8,42 @@ type ChatMessage = {
   content: string;
 };
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
+const DEFAULT_MODEL = "gemini-2.0-flash";
+const FALLBACK_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite", // if your project has it, it can be cheaper/quota-friendly
+  "gemini-2.5-flash-lite",
+];
+
 const MAX_CONTEXT_CHARS = 7000;
+
+function getGeminiClient() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("Missing GEMINI_API_KEY in server environment.");
+  return new GoogleGenerativeAI(key);
+}
+
+function normalizeModelName(name: string) {
+  const n = (name || "").trim();
+  if (!n) return "";
+  // Accept either "models/xyz" or "xyz"
+  return n.startsWith("models/") ? n.replace("models/", "") : n;
+}
+
+function pickModelCandidates() {
+  const envModel = normalizeModelName(process.env.GEMINI_MODEL || "");
+  const candidates = [
+    envModel || DEFAULT_MODEL,
+    ...FALLBACK_MODELS.filter((m) => m !== envModel),
+  ];
+  // de-dupe
+  return Array.from(new Set(candidates));
+}
+
+function truncate(s: string, n: number) {
+  if (s.length <= n) return s;
+  return s.slice(0, n) + "…";
+}
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -29,77 +62,58 @@ function parseRetryDelaySeconds(err: any): number | null {
   return null;
 }
 
-async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 6): Promise<T> {
   let attempt = 0;
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       return await fn();
     } catch (err: any) {
       attempt += 1;
+      const status = err?.status;
 
-      if (err?.status !== 429 || attempt > maxRetries) throw err;
+      // Only retry rate-limit + transient errors
+      const retryable = status === 429 || status === 500 || status === 503;
+
+      if (!retryable || attempt > maxRetries) {
+        throw err;
+      }
 
       const retrySec = parseRetryDelaySeconds(err);
-      const waitMs =
-        retrySec != null ? (retrySec + 1) * 1000 : Math.min(60000, 1000 * 2 ** attempt);
+      const backoffMs =
+        retrySec != null
+          ? (retrySec + 1) * 1000
+          : Math.min(60000, 1000 * Math.pow(2, attempt));
 
-      console.warn(
-        `⚠️ [chat] 429 on ${label}. Retry ${attempt}/${maxRetries} in ${Math.round(waitMs / 1000)}s`
-      );
-      await sleep(waitMs);
+      console.warn(`⚠️ ${label} retry ${attempt}/${maxRetries} in ${Math.round(backoffMs / 1000)}s`);
+      await sleep(backoffMs);
     }
   }
 }
 
-function getGeminiClient() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("Missing GEMINI_API_KEY in server environment.");
-  return new GoogleGenerativeAI(key);
-}
-
-function pickModelName() {
-  const envModel = (process.env.GEMINI_MODEL || "").trim();
-
-  // Allow "models/..." but normalize to what SDK expects
-  const normalized = envModel.startsWith("models/") ? envModel.replace("models/", "") : envModel;
-
-  // IMPORTANT: default to gemini-1.5-flash (most likely to have quota)
-  return normalized || DEFAULT_MODEL;
-}
-
-function truncate(s: string, n: number) {
-  if (s.length <= n) return s;
-  return s.slice(0, n) + "…";
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
     const body = req.body || {};
     const messages = (body.messages || []) as ChatMessage[];
 
-    if (!messages.length) {
-      return res.status(400).json({ error: "No messages provided" });
-    }
+    if (!messages.length) return res.status(400).json({ error: "No messages provided" });
 
     const latest = messages[messages.length - 1];
-    if (!latest.content?.trim()) {
-      return res.status(400).json({ error: "Last message has no content" });
-    }
-
-    const userQuery = latest.content.trim();
+    const userQuery = (latest?.content || "").trim();
+    if (!userQuery) return res.status(400).json({ error: "Last message has no content" });
 
     // RAG context
     const contextEntries = await retrieveRelevantContext(userQuery);
+
     const contextTextRaw = contextEntries
       .map((e) => `Source: ${e.source}\n${e.text}`)
       .join("\n\n---\n\n");
+
     const contextText = truncate(contextTextRaw, MAX_CONTEXT_CHARS);
 
-    // History
+    // Convert history to Gemini format
     const history = messages.slice(0, -1).map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
@@ -118,52 +132,68 @@ ${contextText || "(no matching context)"}
 
 User question:
 ${userQuery}
-    `.trim();
+`.trim();
 
     const ai = getGeminiClient();
-    const modelName = pickModelName();
+    const candidates = pickModelCandidates();
 
-    const model = ai.getGenerativeModel({
-      model: modelName,
-      systemInstruction: CHRISTY_SYSTEM_PROMPT,
-    });
+    let lastErr: any = null;
 
-    const response = await withRetry(
-      () =>
-        model.generateContent({
-          contents: [
-            ...history,
-            {
-              role: "user",
-              parts: [{ text: userPrompt }],
-            },
-          ],
-        }),
-      "generateContent",
-      3
-    );
+    for (const modelName of candidates) {
+      try {
+        const model = ai.getGenerativeModel({
+          model: modelName,
+          systemInstruction: CHRISTY_SYSTEM_PROMPT,
+        });
 
-    const reply = response.response.text();
-    return res.status(200).json({ reply });
-  } catch (err: any) {
-    const status = err?.status;
-    const msg = err?.message || "Unknown error";
+        const response = await withRetry(
+          () =>
+            model.generateContent({
+              contents: [
+                ...history,
+                { role: "user", parts: [{ text: userPrompt }] },
+              ],
+            }),
+          `generateContent(${modelName})`,
+          6
+        );
 
-    console.error("Christy API error:", msg);
+        const reply = response.response.text();
+        return res.status(200).json({ reply, model: modelName });
+      } catch (err: any) {
+        lastErr = err;
 
-    // If Gemini rate-limits, return 429 so UI can show a nicer message
-    if (status === 429) {
-      return res.status(429).json({
-        error: "Rate limited",
-        details: msg,
-        hint:
-          "Gemini quota/rate limit hit. Try again in a bit. If you keep seeing 'limit: 0', enable billing or use gemini-1.5-flash.",
-      });
+        // If model is not found (404), try next candidate
+        if (err?.status === 404) {
+          console.warn(`⚠️ Model not found: ${modelName}. Trying next...`);
+          continue;
+        }
+
+        // If quota is 0 / forbidden, this will keep failing across models.
+        // We'll break early for clarity.
+        if (err?.status === 429) {
+          // still might succeed on next model if quota differs, so continue
+          console.warn(`⚠️ Rate limited on ${modelName}. Trying next candidate...`);
+          continue;
+        }
+
+        // Non-retryable → stop
+        break;
+      }
     }
 
+    console.error("Christy API error:", lastErr);
     return res.status(500).json({
       error: "Internal server error",
-      details: msg,
+      details: lastErr?.message ?? "Unknown error",
+      hint:
+        "If you see quota 'limit: 0', enable billing / quota for this API key project, or generate a new key in a project with Gemini API enabled.",
+    });
+  } catch (err: any) {
+    console.error("Christy API fatal error:", err);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: err?.message ?? "Unknown error",
     });
   }
 }

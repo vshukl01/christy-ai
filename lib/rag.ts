@@ -13,22 +13,29 @@ export type KBEntry = {
 
 let KB_CACHE: KBEntry[] | null = null;
 
-// Prefer a known-good embedding model for v1beta
-const EMBED_MODEL_OVERRIDE = (process.env.GEMINI_EMBED_MODEL || "").trim();
-const EMBED_MODEL_CANDIDATES = [
-  EMBED_MODEL_OVERRIDE,
-  "models/gemini-embedding-001",
-  "models/embedding-001",
-].filter(Boolean);
+// ---- Embedding model candidates (auto-pick first that works) ----
+const EMBEDDING_MODEL_OVERRIDE = (process.env.GEMINI_EMBED_MODEL || process.env.EMBEDDING_MODEL || "").trim();
 
-const QUERY_EMBED_CACHE_MAX = 200;
+const EMBEDDING_MODEL_CANDIDATES = [
+  // ✅ your working one (per your terminal logs)
+  "models/gemini-embedding-001",
+
+  // keep older fallbacks (may 404 depending on project)
+  "models/embedding-001",
+  "models/text-embedding-001",
+];
+
+// Cache selected model on cold start
+let SELECTED_EMBED_MODEL: string | null = null;
+
+// Lightweight in-memory cache for query embeddings (avoid repeated calls)
 const QUERY_EMBED_CACHE = new Map<string, number[]>();
+const QUERY_EMBED_CACHE_MAX = 250;
 
 function loadKB(): KBEntry[] {
   if (KB_CACHE) return KB_CACHE;
 
   const kbPath = path.join(process.cwd(), "data", "rag", "knowledge_base.json");
-
   if (!fs.existsSync(kbPath)) {
     console.warn("[RAG] knowledge_base.json not found → returning empty context.");
     KB_CACHE = [];
@@ -56,57 +63,113 @@ function cosineSim(a: number[], b: number[]): number {
   return dot / denom;
 }
 
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Missing GEMINI_API_KEY in server environment.");
-  return new GoogleGenerativeAI(apiKey);
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-async function tryEmbed(modelName: string, text: string): Promise<number[]> {
-  const ai = getGeminiClient();
-  const model = ai.getGenerativeModel({ model: modelName });
-  const res = await model.embedContent(text);
-  const vec = res?.embedding?.values || [];
-  if (!Array.isArray(vec) || vec.length < 10) throw new Error("Bad embedding vector");
-  return vec;
+function parseRetryDelaySeconds(err: any): number | null {
+  const details = err?.errorDetails;
+  if (!Array.isArray(details)) return null;
+  for (const d of details) {
+    if (d?.["@type"]?.includes("RetryInfo") && typeof d.retryDelay === "string") {
+      const m = d.retryDelay.match(/^(\d+)\s*s$/i);
+      if (m) return Number(m[1]);
+    }
+  }
+  return null;
 }
 
-async function embedQuery(text: string): Promise<number[]> {
-  const key = text.trim().slice(0, 5000); // avoid giant cache keys
-  const cached = QUERY_EMBED_CACHE.get(key);
-  if (cached) return cached;
-
-  let lastErr: any = null;
-
-  for (const modelName of EMBED_MODEL_CANDIDATES) {
+async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 6): Promise<T> {
+  let attempt = 0;
+  while (true) {
     try {
-      const vec = await tryEmbed(modelName, key);
+      return await fn();
+    } catch (err: any) {
+      attempt += 1;
 
-      // simple LRU-ish cap
-      QUERY_EMBED_CACHE.set(key, vec);
-      if (QUERY_EMBED_CACHE.size > QUERY_EMBED_CACHE_MAX) {
-        const firstKey = QUERY_EMBED_CACHE.keys().next().value as string | undefined;
-        if (firstKey) QUERY_EMBED_CACHE.delete(firstKey);
+      const status = err?.status;
+      if (status !== 429 || attempt > maxRetries) {
+        throw err;
       }
 
-      return vec;
-    } catch (e: any) {
-      lastErr = e;
-      // try next model
+      const retrySec = parseRetryDelaySeconds(err);
+      const backoffMs =
+        retrySec != null
+          ? (retrySec + 1) * 1000
+          : Math.min(60000, 1000 * Math.pow(2, attempt));
+
+      console.warn(`[RAG] Rate-limited on ${label}. Retry ${attempt}/${maxRetries} in ${Math.round(backoffMs / 1000)}s`);
+      await sleep(backoffMs);
+    }
+  }
+}
+
+async function tryEmbedPing(ai: GoogleGenerativeAI, modelName: string) {
+  const model = ai.getGenerativeModel({ model: modelName });
+  // ✅ IMPORTANT: pass string (SDK supports), if your TS complains you can swap to object form below
+  // await model.embedContent({ content: { parts: [{ text: "ping" }] } });
+  const resp = await model.embedContent("ping");
+  const vec = resp?.embedding?.values || [];
+  if (!Array.isArray(vec) || vec.length < 10) {
+    throw new Error(`Invalid embedding vector from ${modelName}`);
+  }
+}
+
+async function pickEmbeddingModel(ai: GoogleGenerativeAI): Promise<string> {
+  if (SELECTED_EMBED_MODEL) return SELECTED_EMBED_MODEL;
+
+  if (EMBEDDING_MODEL_OVERRIDE) {
+    await withRetry(() => tryEmbedPing(ai, EMBEDDING_MODEL_OVERRIDE), `embed ping (${EMBEDDING_MODEL_OVERRIDE})`);
+    SELECTED_EMBED_MODEL = EMBEDDING_MODEL_OVERRIDE;
+    return SELECTED_EMBED_MODEL;
+  }
+
+  for (const m of EMBEDDING_MODEL_CANDIDATES) {
+    try {
+      await withRetry(() => tryEmbedPing(ai, m), `embed ping (${m})`);
+      SELECTED_EMBED_MODEL = m;
+      return SELECTED_EMBED_MODEL;
+    } catch {
+      // try next
     }
   }
 
-  throw new Error(
-    `[RAG] Failed to embed query. Tried: ${EMBED_MODEL_CANDIDATES.join(
-      ", "
-    )}. Last error: ${lastErr?.message || lastErr}`
-  );
+  // last resort
+  SELECTED_EMBED_MODEL = "models/gemini-embedding-001";
+  return SELECTED_EMBED_MODEL;
 }
 
-export async function retrieveRelevantContext(
-  query: string,
-  topK = 8
-): Promise<KBEntry[]> {
+async function embedQuery(text: string): Promise<number[]> {
+  // cache
+  const cached = QUERY_EMBED_CACHE.get(text);
+  if (cached) return cached;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
+
+  const ai = new GoogleGenerativeAI(apiKey);
+  const embedModelName = await pickEmbeddingModel(ai);
+  const model = ai.getGenerativeModel({ model: embedModelName });
+
+  // ✅ If the SDK version ever becomes strict, switch to object form:
+  // const result = await model.embedContent({ content: { parts: [{ text }] } });
+
+  const result = await withRetry(() => model.embedContent(text), "embedContent");
+
+  const emb = result?.embedding?.values || [];
+
+  // Maintain small cache
+  QUERY_EMBED_CACHE.set(text, emb);
+  if (QUERY_EMBED_CACHE.size > QUERY_EMBED_CACHE_MAX) {
+    // delete oldest safely (fixes TS red underline)
+    const first = QUERY_EMBED_CACHE.keys().next();
+    if (!first.done && first.value) QUERY_EMBED_CACHE.delete(first.value);
+  }
+
+  return emb;
+}
+
+export async function retrieveRelevantContext(query: string, topK = 8): Promise<KBEntry[]> {
   const kb = loadKB();
   if (!kb.length) return [];
 
