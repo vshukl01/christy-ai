@@ -13,12 +13,14 @@ export type KBEntry = {
 
 let KB_CACHE: KBEntry[] | null = null;
 
-// Embedding model used at runtime (should match KB build)
-const EMBEDDING_MODEL =
-  (process.env.EMBEDDING_MODEL || process.env.GEMINI_EMBED_MODEL || "").trim() ||
-  "models/gemini-embedding-001";
+// Prefer a known-good embedding model for v1beta
+const EMBED_MODEL_OVERRIDE = (process.env.GEMINI_EMBED_MODEL || "").trim();
+const EMBED_MODEL_CANDIDATES = [
+  EMBED_MODEL_OVERRIDE,
+  "models/gemini-embedding-001",
+  "models/embedding-001",
+].filter(Boolean);
 
-// Small in-memory query embedding cache (per serverless instance)
 const QUERY_EMBED_CACHE_MAX = 200;
 const QUERY_EMBED_CACHE = new Map<string, number[]>();
 
@@ -26,6 +28,7 @@ function loadKB(): KBEntry[] {
   if (KB_CACHE) return KB_CACHE;
 
   const kbPath = path.join(process.cwd(), "data", "rag", "knowledge_base.json");
+
   if (!fs.existsSync(kbPath)) {
     console.warn("[RAG] knowledge_base.json not found → returning empty context.");
     KB_CACHE = [];
@@ -43,7 +46,6 @@ function cosineSim(a: number[], b: number[]): number {
   let magB = 0;
 
   const len = Math.min(a.length, b.length);
-
   for (let i = 0; i < len; i++) {
     dot += a[i] * b[i];
     magA += a[i] * a[i];
@@ -54,88 +56,68 @@ function cosineSim(a: number[], b: number[]): number {
   return dot / denom;
 }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Missing GEMINI_API_KEY in server environment.");
+  return new GoogleGenerativeAI(apiKey);
 }
 
-function parseRetryDelaySeconds(err: any): number | null {
-  const details = err?.errorDetails;
-  if (!Array.isArray(details)) return null;
-
-  for (const d of details) {
-    if (d?.["@type"]?.includes("RetryInfo") && typeof d.retryDelay === "string") {
-      const m = d.retryDelay.match(/^(\d+)\s*s$/i);
-      if (m) return Number(m[1]);
-    }
-  }
-  return null;
-}
-
-async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 6): Promise<T> {
-  let attempt = 0;
-
-  while (true) {
-    try {
-      return await fn();
-    } catch (err: any) {
-      attempt += 1;
-
-      if (err?.status !== 429 || attempt > maxRetries) {
-        throw err;
-      }
-
-      const retrySec = parseRetryDelaySeconds(err);
-      const waitMs =
-        retrySec != null ? (retrySec + 1) * 1000 : Math.min(60000, 1000 * 2 ** attempt);
-
-      console.warn(
-        `⚠️ [RAG] 429 on ${label}. Retry ${attempt}/${maxRetries} in ${Math.round(waitMs / 1000)}s`
-      );
-      await sleep(waitMs);
-    }
-  }
+async function tryEmbed(modelName: string, text: string): Promise<number[]> {
+  const ai = getGeminiClient();
+  const model = ai.getGenerativeModel({ model: modelName });
+  const res = await model.embedContent(text);
+  const vec = res?.embedding?.values || [];
+  if (!Array.isArray(vec) || vec.length < 10) throw new Error("Bad embedding vector");
+  return vec;
 }
 
 async function embedQuery(text: string): Promise<number[]> {
-  const q = (text || "").trim();
-  if (!q) return [];
-
-  const cached = QUERY_EMBED_CACHE.get(q);
+  const key = text.trim().slice(0, 5000); // avoid giant cache keys
+  const cached = QUERY_EMBED_CACHE.get(key);
   if (cached) return cached;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
+  let lastErr: any = null;
 
-  const ai = new GoogleGenerativeAI(apiKey);
-  const model = ai.getGenerativeModel({ model: EMBEDDING_MODEL });
+  for (const modelName of EMBED_MODEL_CANDIDATES) {
+    try {
+      const vec = await tryEmbed(modelName, key);
 
-  const result = await withRetry(() => model.embedContent(q), "embedContent(query)", 8);
-  const emb = result?.embedding?.values || [];
+      // simple LRU-ish cap
+      QUERY_EMBED_CACHE.set(key, vec);
+      if (QUERY_EMBED_CACHE.size > QUERY_EMBED_CACHE_MAX) {
+        const firstKey = QUERY_EMBED_CACHE.keys().next().value as string | undefined;
+        if (firstKey) QUERY_EMBED_CACHE.delete(firstKey);
+      }
 
-  // keep cache bounded
-  QUERY_EMBED_CACHE.set(q, emb);
-  if (QUERY_EMBED_CACHE.size > QUERY_EMBED_CACHE_MAX) {
-    const firstKey = QUERY_EMBED_CACHE.keys().next().value as string | undefined;
-    if (firstKey) QUERY_EMBED_CACHE.delete(firstKey);
+      return vec;
+    } catch (e: any) {
+      lastErr = e;
+      // try next model
+    }
   }
 
-  return emb;
+  throw new Error(
+    `[RAG] Failed to embed query. Tried: ${EMBED_MODEL_CANDIDATES.join(
+      ", "
+    )}. Last error: ${lastErr?.message || lastErr}`
+  );
 }
 
-export async function retrieveRelevantContext(query: string, topK = 8): Promise<KBEntry[]> {
+export async function retrieveRelevantContext(
+  query: string,
+  topK = 8
+): Promise<KBEntry[]> {
   const kb = loadKB();
   if (!kb.length) return [];
 
   const queryEmbedding = await embedQuery(query);
-  if (!queryEmbedding.length) return [];
-
   const qLower = query.toLowerCase();
 
   const scored = kb.map((entry) => {
     let score = cosineSim(queryEmbedding, entry.embedding || []);
     const meta = entry.metadata || {};
 
-    // Safe tiny boosts (optional)
+    // tiny boosts
     try {
       if (meta.model_name) {
         const m = String(meta.model_name).toLowerCase();
@@ -145,9 +127,7 @@ export async function retrieveRelevantContext(query: string, topK = 8): Promise<
         const id = String(meta.product_id).toLowerCase();
         if (id && qLower.includes(id)) score += 0.02;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     return { entry, score };
   });
