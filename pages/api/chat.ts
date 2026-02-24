@@ -1,5 +1,4 @@
 // pages/api/chat.ts
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { retrieveRelevantContext } from "@/lib/rag";
@@ -13,52 +12,39 @@ type ChatMessage = {
 const DEFAULT_MODEL = "gemini-1.5-flash";
 const MAX_CONTEXT_CHARS = 7000;
 
-function getGeminiClient() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new Error("Missing GEMINI_API_KEY in server environment.");
-  }
-  return new GoogleGenerativeAI(key);
-}
-
-function pickModelName() {
-  const envModel = (process.env.GEMINI_MODEL || "").trim();
-  const normalized = envModel.startsWith("models/")
-    ? envModel.replace("models/", "")
-    : envModel;
-  return normalized || DEFAULT_MODEL;
-}
-
 function truncate(s: string, n: number) {
   if (s.length <= n) return s;
   return s.slice(0, n) + "…";
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+function normalizeGenModelName(name: string) {
+  // For generateContent, Gemini commonly accepts either "gemini-1.5-flash" or "models/gemini-1.5-flash"
+  // We'll normalize to WITHOUT "models/" to avoid mismatches.
+  const trimmed = (name || "").trim();
+  if (!trimmed) return DEFAULT_MODEL;
+  return trimmed.startsWith("models/") ? trimmed.replace("models/", "") : trimmed;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        error: "Server misconfigured",
+        details: "Missing GEMINI_API_KEY in Vercel Environment Variables."
+      });
+    }
+
     const body = req.body || {};
     const messages = (body.messages || []) as ChatMessage[];
-
-    if (!messages.length) {
-      return res.status(400).json({ error: "No messages provided" });
-    }
+    if (!messages.length) return res.status(400).json({ error: "No messages provided" });
 
     const latest = messages[messages.length - 1];
+    const userQuery = (latest?.content || "").trim();
+    if (!userQuery) return res.status(400).json({ error: "Last message has no content" });
 
-    if (!latest.content?.trim()) {
-      return res.status(400).json({ error: "Last message has no content" });
-    }
-
-    const userQuery = latest.content.trim();
-
-    // Retrieve relevant RAG context
     const contextEntries = await retrieveRelevantContext(userQuery);
 
     const contextTextRaw = contextEntries
@@ -67,7 +53,6 @@ export default async function handler(
 
     const contextText = truncate(contextTextRaw, MAX_CONTEXT_CHARS);
 
-    // Build history for model
     const history = messages.slice(0, -1).map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
@@ -86,11 +71,11 @@ ${contextText || "(no matching context)"}
 
 User question:
 ${userQuery}
-    `.trim();
+`.trim();
 
-    const ai = getGeminiClient();
-    const modelName = pickModelName();
+    const ai = new GoogleGenerativeAI(apiKey);
 
+    const modelName = normalizeGenModelName(process.env.GEMINI_MODEL || "");
     const model = ai.getGenerativeModel({
       model: modelName,
       systemInstruction: CHRISTY_SYSTEM_PROMPT,
@@ -99,22 +84,21 @@ ${userQuery}
     const response = await model.generateContent({
       contents: [
         ...history,
-        {
-          role: "user",
-          parts: [{ text: userPrompt }],
-        },
+        { role: "user", parts: [{ text: userPrompt }] },
       ],
     });
 
     const reply = response.response.text();
-
-    return res.status(200).json({ reply });
+    return res.status(200).json({
+      reply,
+      contextUsed: contextEntries.map((e) => ({ id: e.id, source: e.source })),
+    });
   } catch (err: any) {
     console.error("Christy API error:", err);
 
     return res.status(500).json({
       error: "Internal server error",
-      details: err?.message ?? "Unknown error",
+      details: String(err?.message || err),
     });
   }
 }
