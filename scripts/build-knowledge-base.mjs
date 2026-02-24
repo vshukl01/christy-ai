@@ -3,10 +3,11 @@
 // Inputs: data/rag/marketing_book.txt, data/rag/chats.json, data/rag/price_sheet.csv
 // Output: data/rag/knowledge_base.json
 //
-// Fixes:
-// - Batch embedding + throttling
-// - Auto retry on 429 (rate limit) using retryDelay when available
-// - Keeps everything "back to normal" (no log training, no pdf-parse)
+// Features:
+// - Auto-pick embedding model (tries text-embedding-004 first, then fallbacks)
+// - Batch embedding with throttling
+// - Auto retry on 429 using retryDelay when available
+// - No logs, no pdf-parse (simple + stable)
 
 import fs from "fs";
 import path from "path";
@@ -24,11 +25,11 @@ if (!apiKey) {
 
 const ai = new GoogleGenerativeAI(apiKey);
 
-// Your folder layout
+// Folder layout
 const RAG_DIR = path.join(process.cwd(), "data", "rag");
 const OUT_PATH = path.join(RAG_DIR, "knowledge_base.json");
 
-// Candidate embedding models
+// Candidate embedding models (try in order)
 const EMBEDDING_MODEL_OVERRIDE = (process.env.EMBEDDING_MODEL || "").trim();
 const EMBEDDING_MODEL_CANDIDATES = [
   "models/text-embedding-004",
@@ -39,20 +40,15 @@ const EMBEDDING_MODEL_CANDIDATES = [
 
 let SELECTED_EMBED_MODEL = null;
 
-// Tuning
-const CHUNK_MAX_CHARS = 800;
+// Tuning (safe defaults)
+const CHUNK_MAX_CHARS = Number(process.env.CHUNK_MAX_CHARS || 800);
 
-// Batch size matters a lot: fewer requests => fewer rate limit hits.
-// Keep conservative (works well on free tier).
-const EMBED_BATCH_SIZE = Number(process.env.EMBED_BATCH_SIZE || 16);
+// Fewer requests helps on free tier
+const EMBED_BATCH_SIZE = Number(process.env.EMBED_BATCH_SIZE || 12);
+const BATCH_THROTTLE_MS = Number(process.env.EMBED_BATCH_DELAY_MS || 600);
+const MAX_RETRIES = Number(process.env.EMBED_MAX_RETRIES || 10);
 
-// Delay between batches (ms)
-const BATCH_THROTTLE_MS = Number(process.env.EMBED_BATCH_DELAY_MS || 350);
-
-// Max retry attempts when rate-limited
-const MAX_RETRIES = Number(process.env.EMBED_MAX_RETRIES || 8);
-
-/* ========== Small utilities ========== */
+/* ========== Utilities ========== */
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -78,8 +74,6 @@ function chunkText(text, maxChars = CHUNK_MAX_CHARS) {
 }
 
 function parseRetryDelaySeconds(err) {
-  // Google error payload sometimes has retryDelay like "31s"
-  // err.errorDetails might include RetryInfo
   const details = err?.errorDetails;
   if (!Array.isArray(details)) return null;
 
@@ -112,11 +106,11 @@ async function withRetry(fn, label = "request") {
       const retrySec = parseRetryDelaySeconds(err);
       const backoffMs =
         retrySec != null
-          ? (retrySec + 1) * 1000 // add 1s buffer
-          : Math.min(60000, 1000 * Math.pow(2, attempt)); // exponential capped at 60s
+          ? (retrySec + 1) * 1000
+          : Math.min(60000, 1000 * Math.pow(2, attempt));
 
       console.warn(
-        `⚠️ Rate-limited (429) on ${label}. Retry attempt ${attempt}/${MAX_RETRIES} in ${Math.round(
+        `⚠️ Rate-limited (429) on ${label}. Retry ${attempt}/${MAX_RETRIES} in ${Math.round(
           backoffMs / 1000
         )}s...`
       );
@@ -150,23 +144,13 @@ async function pickEmbeddingModel() {
       SELECTED_EMBED_MODEL = m;
       return SELECTED_EMBED_MODEL;
     } catch {
-      // try next
+      // try next model
     }
   }
 
-  throw new Error(
-    `No embedding model worked. Tried: ${EMBEDDING_MODEL_CANDIDATES.join(", ")}`
-  );
+  throw new Error(`No embedding model worked. Tried: ${EMBEDDING_MODEL_CANDIDATES.join(", ")}`);
 }
 
-/**
- * Embed a batch in the MOST quota-efficient way:
- * 1) Prefer batch API if supported: embedContent({ content: { parts: [{text}] } }) for each item doesn't help.
- *    The Google SDK currently focuses on embedContent (single).
- *    So we implement a "client-side batch": we loop, but throttle + retry so it completes reliably.
- * 2) Optionally, we can "pack" multiple texts into one input separated by delimiters — NOT recommended for embeddings
- *    because you lose per-item vectors. So we keep one vector per text.
- */
 async function embedBatch(texts) {
   if (!texts.length) return [];
 
@@ -177,21 +161,16 @@ async function embedBatch(texts) {
   for (let i = 0; i < texts.length; i++) {
     const t = String(texts[i] || "");
 
-    // Single embed call with retry
     const resp = await withRetry(() => model.embedContent(t), "embedContent");
     out.push(resp?.embedding?.values || []);
 
-    // tiny delay every few calls to avoid burst throttling
-    if ((i + 1) % 8 === 0) {
-      await sleep(120);
-    }
+    // tiny micro-throttle to avoid bursts
+    if ((i + 1) % 8 === 0) await sleep(120);
   }
-
   return out;
 }
 
 async function embedAll(texts) {
-  // Process in chunks of EMBED_BATCH_SIZE with a delay between chunks
   const all = new Array(texts.length);
 
   for (let start = 0; start < texts.length; start += EMBED_BATCH_SIZE) {
@@ -205,9 +184,7 @@ async function embedAll(texts) {
       all[start + j] = vecs[j];
     }
 
-    if (end < texts.length) {
-      await sleep(BATCH_THROTTLE_MS);
-    }
+    if (end < texts.length) await sleep(BATCH_THROTTLE_MS);
   }
 
   return all;
@@ -218,8 +195,7 @@ async function embedAll(texts) {
 function describePriceRow(row) {
   const category = (row.category || "product").toString();
   const model = (row.model_name || "").toString();
-  const condition =
-    String(row.condition || "").toLowerCase() === "used" ? "used" : "new";
+  const condition = String(row.condition || "").toLowerCase() === "used" ? "used" : "new";
 
   const hashrate =
     row.hashrate_ths && String(row.hashrate_ths).trim()
@@ -232,14 +208,10 @@ function describePriceRow(row) {
       : "";
 
   const price =
-    row.price_usd && String(row.price_usd).trim()
-      ? `$${row.price_usd}`
-      : "Price on request";
+    row.price_usd && String(row.price_usd).trim() ? `$${row.price_usd}` : "Price on request";
 
   const stock =
-    row.stock && String(row.stock).trim()
-      ? `${row.stock} in stock`
-      : "stock on request";
+    row.stock && String(row.stock).trim() ? `${row.stock} in stock` : "stock on request";
 
   const perf = [hashrate, efficiency].filter(Boolean).join(", ");
 
@@ -263,12 +235,9 @@ function describePriceRow(row) {
   }
 
   const doa =
-    row.doa_terms && String(row.doa_terms).trim()
-      ? ` DOA / warranty: ${row.doa_terms}`
-      : "";
+    row.doa_terms && String(row.doa_terms).trim() ? ` DOA / warranty: ${row.doa_terms}` : "";
 
-  const notes =
-    row.notes && String(row.notes).trim() ? ` Notes: ${row.notes}` : "";
+  const notes = row.notes && String(row.notes).trim() ? ` Notes: ${row.notes}` : "";
 
   return [
     `Category: ${category}`,
@@ -293,6 +262,7 @@ async function buildMarketingEntries() {
     console.log("No marketing_book.txt found – skipping.");
     return [];
   }
+
   const raw = fs.readFileSync(filePath, "utf8");
   if (!raw.trim()) return [];
 
@@ -323,6 +293,7 @@ async function buildChatEntries() {
 
   for (let i = 0; i < chats.length; i++) {
     const msg = chats[i];
+
     if (msg.role === "user" && chats[i + 1]?.role === "agent") {
       const combo = `User: ${msg.content}\nAgent: ${chats[i + 1].content}`;
       texts.push(combo);
@@ -359,10 +330,7 @@ async function buildPriceEntries() {
   const raw = fs.readFileSync(filePath, "utf8");
   const parsed = Papa.parse(raw, { header: true, skipEmptyLines: true });
 
-  const rows = (parsed.data || []).filter(
-    (row) => row && (row.product_id || row.model_name)
-  );
-
+  const rows = (parsed.data || []).filter((row) => row && (row.product_id || row.model_name));
   const texts = rows.map((row) => describePriceRow(row));
   const embeddings = await embedAll(texts);
 

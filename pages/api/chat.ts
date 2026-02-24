@@ -12,19 +12,59 @@ type ChatMessage = {
 const DEFAULT_MODEL = "gemini-1.5-flash";
 const MAX_CONTEXT_CHARS = 7000;
 
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function parseRetryDelaySeconds(err: any): number | null {
+  const details = err?.errorDetails;
+  if (!Array.isArray(details)) return null;
+
+  for (const d of details) {
+    if (d?.["@type"]?.includes("RetryInfo") && typeof d.retryDelay === "string") {
+      const m = d.retryDelay.match(/^(\d+)\s*s$/i);
+      if (m) return Number(m[1]);
+    }
+  }
+  return null;
+}
+
+async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      attempt += 1;
+
+      if (err?.status !== 429 || attempt > maxRetries) throw err;
+
+      const retrySec = parseRetryDelaySeconds(err);
+      const waitMs =
+        retrySec != null ? (retrySec + 1) * 1000 : Math.min(60000, 1000 * 2 ** attempt);
+
+      console.warn(
+        `⚠️ [chat] 429 on ${label}. Retry ${attempt}/${maxRetries} in ${Math.round(waitMs / 1000)}s`
+      );
+      await sleep(waitMs);
+    }
+  }
+}
+
 function getGeminiClient() {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("Missing GEMINI_API_KEY in server environment.");
   return new GoogleGenerativeAI(key);
 }
 
-// Normalize env model:
-// - if user puts "models/xyz", convert to "xyz"
-// - if empty, fallback
 function pickModelName() {
-  const raw = (process.env.GEMINI_MODEL || "").trim();
-  if (!raw) return DEFAULT_MODEL;
-  return raw.startsWith("models/") ? raw.replace("models/", "") : raw;
+  const envModel = (process.env.GEMINI_MODEL || "").trim();
+
+  // Allow "models/..." but normalize to what SDK expects
+  const normalized = envModel.startsWith("models/") ? envModel.replace("models/", "") : envModel;
+
+  // IMPORTANT: default to gemini-1.5-flash (most likely to have quota)
+  return normalized || DEFAULT_MODEL;
 }
 
 function truncate(s: string, n: number) {
@@ -33,16 +73,22 @@ function truncate(s: string, n: number) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   try {
     const body = req.body || {};
     const messages = (body.messages || []) as ChatMessage[];
 
-    if (!messages.length) return res.status(400).json({ error: "No messages provided" });
+    if (!messages.length) {
+      return res.status(400).json({ error: "No messages provided" });
+    }
 
     const latest = messages[messages.length - 1];
-    if (!latest.content?.trim()) return res.status(400).json({ error: "Last message has no content" });
+    if (!latest.content?.trim()) {
+      return res.status(400).json({ error: "Last message has no content" });
+    }
 
     const userQuery = latest.content.trim();
 
@@ -53,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .join("\n\n---\n\n");
     const contextText = truncate(contextTextRaw, MAX_CONTEXT_CHARS);
 
-    // History (Gemini SDK uses "model" role for assistant)
+    // History
     const history = messages.slice(0, -1).map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
@@ -82,27 +128,42 @@ ${userQuery}
       systemInstruction: CHRISTY_SYSTEM_PROMPT,
     });
 
-    const response = await model.generateContent({
-      contents: [
-        ...history,
-        {
-          role: "user",
-          parts: [{ text: userPrompt }],
-        },
-      ],
-    });
+    const response = await withRetry(
+      () =>
+        model.generateContent({
+          contents: [
+            ...history,
+            {
+              role: "user",
+              parts: [{ text: userPrompt }],
+            },
+          ],
+        }),
+      "generateContent",
+      3
+    );
 
     const reply = response.response.text();
     return res.status(200).json({ reply });
   } catch (err: any) {
-    console.error("Christy API error:", err);
+    const status = err?.status;
+    const msg = err?.message || "Unknown error";
 
-    // Surface the important part cleanly
+    console.error("Christy API error:", msg);
+
+    // If Gemini rate-limits, return 429 so UI can show a nicer message
+    if (status === 429) {
+      return res.status(429).json({
+        error: "Rate limited",
+        details: msg,
+        hint:
+          "Gemini quota/rate limit hit. Try again in a bit. If you keep seeing 'limit: 0', enable billing or use gemini-1.5-flash.",
+      });
+    }
+
     return res.status(500).json({
       error: "Internal server error",
-      details: err?.message ?? "Unknown error",
-      hint:
-        "Most common cause: GEMINI_MODEL is not a valid Gemini API v1beta model. Try gemini-1.5-flash.",
+      details: msg,
     });
   }
 }
