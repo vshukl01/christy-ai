@@ -12,40 +12,49 @@ type ChatMessage = {
 const DEFAULT_MODEL = "gemini-1.5-flash";
 const MAX_CONTEXT_CHARS = 7000;
 
+function getGeminiClient() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("Missing GEMINI_API_KEY in server environment.");
+  return new GoogleGenerativeAI(key);
+}
+
+function pickModelName() {
+  const envModel = (process.env.GEMINI_MODEL || "").trim();
+  const normalized = envModel.startsWith("models/")
+    ? envModel.replace("models/", "")
+    : envModel;
+  return normalized || DEFAULT_MODEL;
+}
+
 function truncate(s: string, n: number) {
   if (s.length <= n) return s;
   return s.slice(0, n) + "…";
-}
-
-function normalizeGenModelName(name: string) {
-  // For generateContent, Gemini commonly accepts either "gemini-1.5-flash" or "models/gemini-1.5-flash"
-  // We'll normalize to WITHOUT "models/" to avoid mismatches.
-  const trimmed = (name || "").trim();
-  if (!trimmed) return DEFAULT_MODEL;
-  return trimmed.startsWith("models/") ? trimmed.replace("models/", "") : trimmed;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "Server misconfigured",
-        details: "Missing GEMINI_API_KEY in Vercel Environment Variables."
-      });
-    }
-
     const body = req.body || {};
     const messages = (body.messages || []) as ChatMessage[];
+
     if (!messages.length) return res.status(400).json({ error: "No messages provided" });
 
     const latest = messages[messages.length - 1];
-    const userQuery = (latest?.content || "").trim();
-    if (!userQuery) return res.status(400).json({ error: "Last message has no content" });
+    if (!latest.content?.trim()) {
+      return res.status(400).json({ error: "Last message has no content" });
+    }
 
-    const contextEntries = await retrieveRelevantContext(userQuery);
+    const userQuery = latest.content.trim();
+
+    // ✅ RAG should never crash the endpoint
+    let contextEntries: any[] = [];
+    try {
+      contextEntries = await retrieveRelevantContext(userQuery);
+    } catch (e) {
+      console.warn("[/api/chat] retrieveRelevantContext failed:", (e as any)?.message || e);
+      contextEntries = [];
+    }
 
     const contextTextRaw = contextEntries
       .map((e) => `Source: ${e.source}\n${e.text}`)
@@ -65,17 +74,18 @@ Rules:
 - Use the context as the source of truth for pricing/stock/DOA.
 - If pricing/stock is missing, say "Price on request" or "I can confirm stock".
 - Ask 1–2 clarifying questions if needed (power rate, location, budget, hosting vs self-host).
+- Be concise and action-oriented.
 
 Context:
 ${contextText || "(no matching context)"}
 
 User question:
 ${userQuery}
-`.trim();
+    `.trim();
 
-    const ai = new GoogleGenerativeAI(apiKey);
+    const ai = getGeminiClient();
+    const modelName = pickModelName();
 
-    const modelName = normalizeGenModelName(process.env.GEMINI_MODEL || "");
     const model = ai.getGenerativeModel({
       model: modelName,
       systemInstruction: CHRISTY_SYSTEM_PROMPT,
@@ -84,21 +94,28 @@ ${userQuery}
     const response = await model.generateContent({
       contents: [
         ...history,
-        { role: "user", parts: [{ text: userPrompt }] },
+        {
+          role: "user",
+          parts: [{ text: userPrompt }],
+        },
       ],
     });
 
     const reply = response.response.text();
+
     return res.status(200).json({
       reply,
-      contextUsed: contextEntries.map((e) => ({ id: e.id, source: e.source })),
+      meta: {
+        model: modelName,
+        usedContextEntries: contextEntries.length,
+      },
     });
   } catch (err: any) {
     console.error("Christy API error:", err);
 
     return res.status(500).json({
       error: "Internal server error",
-      details: String(err?.message || err),
+      details: err?.message ?? "Unknown error",
     });
   }
 }

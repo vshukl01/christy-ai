@@ -13,26 +13,28 @@ export type KBEntry = {
 
 let KB_CACHE: KBEntry[] | null = null;
 
-// ✅ Match Vercel env var naming
+// ✅ Use the env var you actually have on Vercel
+// (fallbacks included so local doesn't break)
 const EMBED_MODEL =
-  (process.env.GEMINI_EMBED_MODEL || "").trim() || "models/gemini-embedding-001";
+  (process.env.GEMINI_EMBED_MODEL || process.env.EMBEDDING_MODEL || "").trim() ||
+  "models/text-embedding-001";
 
-const KB_PATH = path.join(process.cwd(), "data", "rag", "knowledge_base.json");
-
-// Small in-memory cache to reduce embed calls on repeat queries
-const QUERY_EMBED_CACHE = new Map<string, number[]>();
+// Small in-memory cache for query embeddings (avoid re-embedding same query)
 const QUERY_EMBED_CACHE_MAX = 200;
+const QUERY_EMBED_CACHE = new Map<string, number[]>();
 
 function loadKB(): KBEntry[] {
   if (KB_CACHE) return KB_CACHE;
 
-  if (!fs.existsSync(KB_PATH)) {
-    console.warn("[RAG] knowledge_base.json not found → empty context.");
+  const kbPath = path.join(process.cwd(), "data", "rag", "knowledge_base.json");
+
+  if (!fs.existsSync(kbPath)) {
+    console.warn("[RAG] knowledge_base.json not found → returning empty context.");
     KB_CACHE = [];
     return KB_CACHE;
   }
 
-  const raw = fs.readFileSync(KB_PATH, "utf8");
+  const raw = fs.readFileSync(kbPath, "utf8");
   KB_CACHE = JSON.parse(raw) as KBEntry[];
   return KB_CACHE;
 }
@@ -43,6 +45,7 @@ function cosineSim(a: number[], b: number[]): number {
   let magB = 0;
 
   const len = Math.min(a.length, b.length);
+
   for (let i = 0; i < len; i++) {
     dot += a[i] * b[i];
     magA += a[i] * a[i];
@@ -53,66 +56,71 @@ function cosineSim(a: number[], b: number[]): number {
   return dot / denom;
 }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function normalizeModelName(name: string) {
-  // Accept both "models/xxx" and "xxx"
-  return name.startsWith("models/") ? name : `models/${name}`;
-}
-
-async function embedWithRetry(text: string, maxRetries = 6): Promise<number[]> {
+function safeGetGeminiClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Missing GEMINI_API_KEY (server env).");
-
-  const normalizedEmbedModel = normalizeModelName(EMBED_MODEL);
-
-  const ai = new GoogleGenerativeAI(apiKey);
-  const model = ai.getGenerativeModel({ model: normalizedEmbedModel });
-
-  let attempt = 0;
-  while (true) {
-    try {
-      const result = await model.embedContent(text);
-      return result.embedding.values || [];
-    } catch (err: any) {
-      const msg = String(err?.message || "");
-      const is429 = msg.includes("429") || msg.toLowerCase().includes("too many requests");
-
-      attempt++;
-      if (!is429 || attempt > maxRetries) {
-        throw new Error(
-          `[RAG] embed failed (model=${normalizedEmbedModel}) attempt=${attempt}: ${msg}`
-        );
-      }
-
-      // exponential backoff with cap
-      const waitMs = Math.min(30000, 1000 * Math.pow(2, attempt));
-      await sleep(waitMs);
-    }
-  }
+  if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
+  return new GoogleGenerativeAI(apiKey);
 }
 
-async function embedQuery(query: string): Promise<number[]> {
-  const key = query.trim().toLowerCase();
-  if (!key) return [];
+async function embedQuery(text: string): Promise<number[]> {
+  const key = text.trim().slice(0, 5000); // keep cache key bounded
 
   const cached = QUERY_EMBED_CACHE.get(key);
   if (cached) return cached;
 
-  const emb = await embedWithRetry(query);
+  const ai = safeGetGeminiClient();
+  const model = ai.getGenerativeModel({ model: EMBED_MODEL });
 
+  // ✅ Correct SDK usage for @google/generative-ai ^0.24.x
+  const result = await model.embedContent(text);
+  const emb = result?.embedding?.values || [];
+
+  if (!Array.isArray(emb) || emb.length === 0) {
+    throw new Error(`Embedding returned empty vector (model=${EMBED_MODEL})`);
+  }
+
+  // maintain cache size
   QUERY_EMBED_CACHE.set(key, emb);
   if (QUERY_EMBED_CACHE.size > QUERY_EMBED_CACHE_MAX) {
-  // delete oldest (Map preserves insertion order)
-  const first = QUERY_EMBED_CACHE.keys().next();
-  if (!first.done) {
-    QUERY_EMBED_CACHE.delete(first.value);
+    const firstKey = QUERY_EMBED_CACHE.keys().next().value as string | undefined;
+    if (firstKey !== undefined) {
+      QUERY_EMBED_CACHE.delete(firstKey);
+    }
   }
-}
 
   return emb;
+}
+
+/**
+ * Fallback retrieval when embeddings fail:
+ * Simple lexical scoring = count of query terms present in entry text/source/metadata
+ */
+function lexicalRetrieve(kb: KBEntry[], query: string, topK: number): KBEntry[] {
+  const q = query.toLowerCase();
+  const terms = q.split(/[^a-z0-9]+/g).filter(Boolean);
+
+  const scored = kb.map((entry) => {
+    const hay =
+      `${entry.source}\n${entry.text}\n${JSON.stringify(entry.metadata || {})}`.toLowerCase();
+
+    let score = 0;
+    for (const t of terms) {
+      if (t.length < 2) continue;
+      if (hay.includes(t)) score += 1;
+    }
+    // small preference for price sheet if query seems like pricing/stock
+    if (
+      entry.source === "price_sheet" &&
+      /(price|cost|\$|stock|available|inventory|doa|warranty)/i.test(query)
+    ) {
+      score += 1.5;
+    }
+
+    return { entry, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topK).map((s) => s.entry);
 }
 
 export async function retrieveRelevantContext(
@@ -122,36 +130,42 @@ export async function retrieveRelevantContext(
   const kb = loadKB();
   if (!kb.length) return [];
 
-  const queryEmbedding = await embedQuery(query);
-  if (!queryEmbedding.length) return [];
+  // If no embeddings exist in KB (shouldn't happen if build worked), fallback lexical
+  const kbHasEmbeddings = kb.some((e) => Array.isArray(e.embedding) && e.embedding.length > 0);
+  if (!kbHasEmbeddings) {
+    return lexicalRetrieve(kb, query, topK);
+  }
 
-  const qLower = query.toLowerCase();
+  try {
+    const queryEmbedding = await embedQuery(query);
+    const qLower = query.toLowerCase();
 
-  const scored = kb.map((entry) => {
-    let score = cosineSim(queryEmbedding, entry.embedding || []);
-    const meta = entry.metadata || {};
+    const scored = kb.map((entry) => {
+      let score = cosineSim(queryEmbedding, entry.embedding || []);
+      const meta = entry.metadata || {};
 
-    // small metadata boosts
-    try {
-      if (meta.model_name) {
-        const m = String(meta.model_name).toLowerCase();
-        if (m && qLower.includes(m)) score += 0.04;
+      // Small bonuses based on metadata matches (safe)
+      try {
+        if (meta.model_name) {
+          const m = String(meta.model_name).toLowerCase();
+          if (m && qLower.includes(m)) score += 0.04;
+        }
+        if (meta.product_id) {
+          const id = String(meta.product_id).toLowerCase();
+          if (id && qLower.includes(id)) score += 0.02;
+        }
+      } catch {
+        // ignore
       }
-      if (meta.product_id) {
-        const id = String(meta.product_id).toLowerCase();
-        if (id && qLower.includes(id)) score += 0.02;
-      }
-      if (meta.category) {
-        const c = String(meta.category).toLowerCase();
-        if (c && qLower.includes(c)) score += 0.01;
-      }
-    } catch {
-      // ignore
-    }
 
-    return { entry, score };
-  });
+      return { entry, score };
+    });
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK).map((s) => s.entry);
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, topK).map((s) => s.entry);
+  } catch (e) {
+    // ✅ If embedding fails in production due to quota / model changes, don't break the app
+    console.warn("[RAG] embedQuery failed, using lexical fallback:", (e as any)?.message || e);
+    return lexicalRetrieve(kb, query, topK);
+  }
 }
