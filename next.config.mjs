@@ -1,7 +1,9 @@
 // next.config.mjs
-/** @type {import('next').NextConfig} */
+/**
+ * @type {import('next').NextConfig}
+ */
 const nextConfig = {
-  reactStrictMode: true,
-};
-
-export default nextConfig;
+  /* config options here */
+}
+ 
+module.exports = nextConfig
